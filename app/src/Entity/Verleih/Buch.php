@@ -42,6 +42,11 @@ final class Buch
         }
     }
 
+    public function id(): string
+    {
+        return $this->id;
+    }
+
     public function titel(): string
     {
         return $this->titel;

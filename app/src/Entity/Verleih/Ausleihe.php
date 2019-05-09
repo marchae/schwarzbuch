@@ -27,9 +27,9 @@ final class Ausleihe
         $this->bis = $bis;
     }
 
-    public static function fuerNutzer(string $userId, string $buchId, \DateTimeInterface $von, \DateTimeInterface $bis): self
+    public static function fuerNutzer(string $userId, string $buchId, \DateTimeInterface $bis): self
     {
-        return new self($userId, $buchId, $von, $bis);
+        return new self($userId, $buchId, new \DateTimeImmutable(), $bis);
     }
 
     public function abschliessen(): void

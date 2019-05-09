@@ -22,7 +22,7 @@ final class Buch
         $this->titel = $titel;
     }
 
-    public function ausleihen(string $nutzerId, \DateTimeInterface $von, \DateTimeInterface $bis): void
+    public function ausleihen(string $nutzerId, \DateTimeInterface $bis): void
     {
         foreach ($this->ausleihVerlauf as $ausleihe) {
             if (!$ausleihe->abgeschlossen()) {
@@ -30,7 +30,7 @@ final class Buch
             }
         }
 
-        $this->ausleihVerlauf[] = Ausleihe::fuerNutzer($nutzerId, $this->id, $von, $bis);
+        $this->ausleihVerlauf[] = Ausleihe::fuerNutzer($nutzerId, $this->id, $bis);
     }
 
     public function zurueckgeben(): void

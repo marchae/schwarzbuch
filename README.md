@@ -14,9 +14,7 @@ First, clone this repository:
 $ git clone https://github.com/marchae/schwarzbuch
 ```
 
-Next, put your Symfony application into `symfony` folder and do not forget to add `schwarzbuch.localhost` in your `/etc/hosts` file.
-
-Make sure you adjust `database_host` in `parameters.yml` to the database container alias "db"
+Next, run composer install in the `app` folder and do not forget to add `schwarzbuch.localhost` in your `/etc/hosts` file.
 
 Then, run:
 

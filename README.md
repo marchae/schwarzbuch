@@ -11,7 +11,7 @@ This is a complete stack for running Symfony 4 (latest version: Flex) into Docke
 First, clone this repository:
 
 ```bash
-$ git clone https://github.com/eko/docker-symfony.git
+$ git clone https://github.com/marchae/schwarzbuch
 ```
 
 Next, put your Symfony application into `symfony` folder and do not forget to add `schwarzbuch.localhost` in your `/etc/hosts` file.

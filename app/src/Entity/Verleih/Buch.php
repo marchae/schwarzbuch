@@ -21,12 +21,17 @@ final class Buch
 
     private $domainEvents = [];
 
-    public function __construct(string $id, string $titel)
+    private function __construct(string $id, string $titel)
     {
         $this->id = $id;
         $this->titel = $titel;
     }
 
+    public static function zumVerleihFreigeben(string $id, string $titel): self
+    {
+        return new self($id, $titel);
+    }
+    
     public function ausleihen(string $nutzerId, \DateTimeInterface $bis): void
     {
         if ($this->zumVerkaufFreigegeben) {

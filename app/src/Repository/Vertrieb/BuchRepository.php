@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace App\Repository\Verleih;
+namespace App\Repository\Vertrieb;
 
 use App\Entity\Vertrieb\Buch;
 

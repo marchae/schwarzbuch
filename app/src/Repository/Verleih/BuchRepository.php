@@ -22,8 +22,14 @@ final class BuchRepository
         return $this->buecher[$id];
     }
 
-    public function hinzufuegen(Buch $buch): void
+    public function speichern(Buch $buch): void
     {
+        $pendingDomainEvents = $buch->popDomainEvents();
+
         $this->buecher[$buch->id()] = $buch;
+
+        foreach ($pendingDomainEvents as $domainEvent) {
+
+        }
     }
 }

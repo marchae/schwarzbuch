@@ -4,6 +4,8 @@ declare(strict_types = 1);
 
 namespace App\Entity\Verleih;
 
+use App\Event\Verleih\BuchZumVerkaufFreigegeben;
+
 /**
  * @author Marcus Häußler <marcus.haeussler@lidl.com>
  */
@@ -15,6 +17,9 @@ final class Buch
      * @var Ausleihe[]
      */
     private $ausleihVerlauf = [];
+    private $zumVerkaufFreigegeben = false;
+
+    private $domainEvents = [];
 
     public function __construct(string $id, string $titel)
     {
@@ -24,6 +29,10 @@ final class Buch
 
     public function ausleihen(string $nutzerId, \DateTimeInterface $bis): void
     {
+        if ($this->zumVerkaufFreigegeben) {
+            throw new \DomainException(sprintf('Buch %s steht nicht zum Verleih zur Verfügung', $this->titel()));
+        }
+
         foreach ($this->ausleihVerlauf as $ausleihe) {
             if (!$ausleihe->abgeschlossen()) {
                 throw new \DomainException(sprintf('Buch %s wurde noch nicht zurückgegeben', $this->titel()));
@@ -40,6 +49,30 @@ final class Buch
                 $ausleihe->abschliessen();
             }
         }
+
+        if (count($this->ausleihVerlauf) >= 3) {
+            $this->buchZumVerkaufFreigeben();
+        }
+    }
+
+    private function buchZumVerkaufFreigeben()
+    {
+        $this->zumVerkaufFreigegeben = true;
+        $this->raise(new BuchZumVerkaufFreigegeben($this->id(), new \DateTimeImmutable()));
+    }
+
+    private function raise($event)
+    {
+        $this->domainEvents[] = $event;
+    }
+
+    public function popDomainEvents(): array
+    {
+        $domainEvents = $this->domainEvents;
+
+        $this->domainEvents = [];
+
+        return $domainEvents;
     }
 
     public function id(): string

@@ -27,13 +27,18 @@ final class BuchGekauft extends Event
      * @var \DateTimeInterface
      */
     private $kaufDatum;
+    /**
+     * @var int
+     */
+    private $preis;
 
-    public function __construct(string $buchId, string $isbn, string $titel, \DateTimeInterface $kaufDatum)
+    public function __construct(string $buchId, string $isbn, string $titel, \DateTimeInterface $kaufDatum, int $preis)
     {
         $this->buchId = $buchId;
         $this->isbn = $isbn;
         $this->titel = $titel;
         $this->kaufDatum = $kaufDatum;
+        $this->preis = $preis;
     }
 
     public function buchId(): string
@@ -54,5 +59,10 @@ final class BuchGekauft extends Event
     public function kaufDatum(): \DateTimeInterface
     {
         return $this->kaufDatum;
+    }
+
+    public function preis(): int
+    {
+        return $this->preis;
     }
 }

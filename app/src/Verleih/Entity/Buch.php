@@ -51,6 +51,10 @@ final class Buch
             throw new \DomainException('Buch ist bereits verliehen');
         }
 
+        if ($this->ausleihLimitErreicht()) {
+            throw new \DomainException('Buch steht dem Verleih nicht mehr zur Verfügung');
+        }
+
         $ausgabeDatum = new \DateTimeImmutable();
         $this->verleihHistorie[] = VerleihVorgang::beginnen(uniqid(), $this->id, $studentId, $ausgabeDatum, $rueckgabeTermin);
     }
@@ -66,6 +70,17 @@ final class Buch
                 $verleihVorgang->abschliessen();
             }
         }
+
+        if ($this->ausleihLimitErreicht()) {
+            $this->gebeBuchZumVerkaufFrei();
+        }
+    }
+
+
+
+    public function ausleihLimitErreicht(): bool
+    {
+        return count($this->verleihHistorie) >= 3;
     }
 
     private function istVerliehen(): bool
@@ -97,5 +112,10 @@ final class Buch
     public function kaufDatum(): \DateTimeInterface
     {
         return $this->kaufDatum;
+    }
+
+    private function gebeBuchZumVerkaufFrei(): void
+    {
+
     }
 }

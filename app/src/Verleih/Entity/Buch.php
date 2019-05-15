@@ -43,17 +43,39 @@ final class Buch
         return new self($id, $titel, $isbn, $kaufDatum);
     }
 
-    public function leiheBuchAus(string $buchId, string $studentId, \DateTimeImmutable $rueckgabeTermin): void
+    public function leiheBuchAus(string $studentId, \DateTimeImmutable $rueckgabeTermin): void
     {
-        // ist der student gesperrt?
+        // ist der student gesperrt? diese prüfung gehört woanders hin!!!
 
-        foreach ($this->verleihHistorie as $verleihVorgang) {
-            if ($verleihVorgang->offen()) {
-                throw new \DomainException('Buch ist bereits verliehen');
-            }
+        if ($this->istVerliehen()) {
+            throw new \DomainException('Buch ist bereits verliehen');
         }
 
         $ausgabeDatum = new \DateTimeImmutable();
-        $this->verleihHistorie[] = VerleihVorgang::beginnen(uniqid(), $buchId, $studentId, $ausgabeDatum, $rueckgabeTermin);
+        $this->verleihHistorie[] = VerleihVorgang::beginnen(uniqid(), $this->id, $studentId, $ausgabeDatum, $rueckgabeTermin);
+    }
+
+    public function gibBuchZurueck(): void
+    {
+        if (!$this->istVerliehen()) {
+            throw new \DomainException('Ups, Buch ist gar nicht verliehen');
+        }
+
+        foreach ($this->verleihHistorie as $verleihVorgang) {
+            if ($verleihVorgang->offen()) {
+                $verleihVorgang->abschliessen();
+            }
+        }
+    }
+
+    private function istVerliehen(): bool
+    {
+        foreach ($this->verleihHistorie as $verleihVorgang) {
+            if ($verleihVorgang->offen()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -32,7 +32,7 @@ final class VerleihVorgang
     /**
      * @var bool
      */
-    private $zurueckgegeben = false;
+    private $abgeschlossen = false;
 
     private function __construct(string $id, string $buchId, string $studentId, \DateTimeImmutable $ausgabeDatum, \DateTimeImmutable $rueckgabeTermin)
     {
@@ -50,6 +50,11 @@ final class VerleihVorgang
 
     public function offen(): bool
     {
-        return !$this->zurueckgegeben;
+        return !$this->abgeschlossen;
+    }
+
+    public function abschliessen(): void
+    {
+        $this->abgeschlossen = true;
     }
 }

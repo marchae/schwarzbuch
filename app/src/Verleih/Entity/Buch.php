@@ -78,4 +78,24 @@ final class Buch
 
         return false;
     }
+
+    public function id(): string
+    {
+        return $this->id;
+    }
+
+    public function titel(): string
+    {
+        return $this->titel;
+    }
+
+    public function isbn(): string
+    {
+        return $this->isbn;
+    }
+
+    public function kaufDatum(): \DateTimeInterface
+    {
+        return $this->kaufDatum;
+    }
 }

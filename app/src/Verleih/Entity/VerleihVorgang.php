@@ -47,4 +47,9 @@ final class VerleihVorgang
     {
         return new self($id, $buchId, $studentId, $ausgabeDatum, $rueckgabeTermin);
     }
+
+    public function offen(): bool
+    {
+        return !$this->zurueckgegeben;
+    }
 }

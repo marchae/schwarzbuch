@@ -26,7 +26,7 @@ final class Buch
      */
     private $kaufDatum;
     /**
-     * @var array
+     * @var VerleihVorgang[]
      */
     private $verleihHistorie = [];
 
@@ -45,7 +45,13 @@ final class Buch
 
     public function leiheBuchAus(string $buchId, string $studentId, \DateTimeImmutable $rueckgabeTermin): void
     {
-        // validieren ob möglich
+        // ist der student gesperrt?
+
+        foreach ($this->verleihHistorie as $verleihVorgang) {
+            if ($verleihVorgang->offen()) {
+                throw new \DomainException('Buch ist bereits verliehen');
+            }
+        }
 
         $ausgabeDatum = new \DateTimeImmutable();
         $this->verleihHistorie[] = VerleihVorgang::beginnen(uniqid(), $buchId, $studentId, $ausgabeDatum, $rueckgabeTermin);

@@ -64,7 +64,6 @@ You can also use Kibana to visualize Nginx & Symfony logs by visiting `http://sc
 
 # Use xdebug!
 
-To use xdebug change the line `"docker-host.localhost:127.0.0.1"` in docker-compose.yml and replace 127.0.0.1 with your machine ip addres.
 If your IDE default port is not set to 5902 you should do that, too.
 
 # Code license

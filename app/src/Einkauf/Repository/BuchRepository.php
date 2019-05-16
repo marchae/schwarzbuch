@@ -36,7 +36,7 @@ final class BuchRepository
     {
         $this->buecher[$buch->id()] = $buch;
 
-        foreach ($buch->popDomainEvents() as $domainEvent) {
+        foreach ($buch->popRecordedEvents() as $domainEvent) {
             $this->dispatcher->dispatch(get_class($domainEvent), $domainEvent);
         }
     }

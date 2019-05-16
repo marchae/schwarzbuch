@@ -4,10 +4,13 @@ declare(strict_types = 1);
 
 namespace App\Verleih\Entity;
 
+use App\Infrastructure\AggregateRoot;
+use App\Verleih\Event\BuchZumVerkaufFreigegeben;
+
 /**
  * @author Marcus Häußler <marcus.haeussler@lidl.com>
  */
-final class Buch
+final class Buch extends AggregateRoot
 {
     /**
      * @var string
@@ -26,9 +29,10 @@ final class Buch
      */
     private $kaufDatum;
     /**
-     * @var VerleihVorgang[]
+     * @var bool
      */
-    private $verleihHistorie = [];
+    private $istVerliehen = false;
+    private $verleihVerlauf = [];
 
     public function __construct(string $id, string $titel, string $isbn, \DateTimeInterface $kaufDatum)
     {
@@ -43,20 +47,18 @@ final class Buch
         return new self($id, $titel, $isbn, $kaufDatum);
     }
 
-    public function leiheBuchAus(string $studentId, \DateTimeImmutable $rueckgabeTermin): void
+    public function ausleihen(string $verleihId): void
     {
-        // ist der student gesperrt? diese prüfung gehört woanders hin!!!
-
         if ($this->istVerliehen()) {
             throw new \DomainException('Buch ist bereits verliehen');
         }
 
-        if ($this->ausleihLimitErreicht()) {
+        if ($this->istAusleihLimitErreicht()) {
             throw new \DomainException('Buch steht dem Verleih nicht mehr zur Verfügung');
         }
 
-        $ausgabeDatum = new \DateTimeImmutable();
-        $this->verleihHistorie[] = VerleihVorgang::beginnen(uniqid(), $this->id, $studentId, $ausgabeDatum, $rueckgabeTermin);
+        $this->istVerliehen = true;
+        $this->verleihVerlauf[] = $verleihId;
     }
 
     public function gibBuchZurueck(): void
@@ -65,33 +67,24 @@ final class Buch
             throw new \DomainException('Ups, Buch ist gar nicht verliehen');
         }
 
-        foreach ($this->verleihHistorie as $verleihVorgang) {
-            if ($verleihVorgang->offen()) {
-                $verleihVorgang->abschliessen();
-            }
-        }
-
-        if ($this->ausleihLimitErreicht()) {
-            $this->gebeBuchZumVerkaufFrei();
+        if ($this->istAusleihLimitErreicht()) {
+            $this->raise(new BuchZumVerkaufFreigegeben($this->id()));
         }
     }
 
-
-
-    public function ausleihLimitErreicht(): bool
+    public function istVerleihbar(): bool
     {
-        return count($this->verleihHistorie) >= 3;
+        return !$this->istVerliehen() && !$this->istAusleihLimitErreicht();
+    }
+
+    private function istAusleihLimitErreicht(): bool
+    {
+        return count($this->verleihVerlauf) >= 3;
     }
 
     private function istVerliehen(): bool
     {
-        foreach ($this->verleihHistorie as $verleihVorgang) {
-            if ($verleihVorgang->offen()) {
-                return true;
-            }
-        }
-
-        return false;
+        return $this->istVerliehen;
     }
 
     public function id(): string
@@ -112,10 +105,5 @@ final class Buch
     public function kaufDatum(): \DateTimeInterface
     {
         return $this->kaufDatum;
-    }
-
-    private function gebeBuchZumVerkaufFrei(): void
-    {
-
     }
 }

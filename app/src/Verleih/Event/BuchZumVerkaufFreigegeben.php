@@ -4,10 +4,12 @@ declare(strict_types = 1);
 
 namespace App\Verleih\Event;
 
+use Symfony\Component\EventDispatcher\Event;
+
 /**
  * @author Marcus Häußler <marcus.haeussler@lidl.com>
  */
-final class BuchZumVerkaufFreigegeben
+final class BuchZumVerkaufFreigegeben extends Event
 {
     /**
      * @var string

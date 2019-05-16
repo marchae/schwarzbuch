@@ -5,12 +5,13 @@ declare(strict_types = 1);
 namespace App\Einkauf\Entity;
 
 use App\Einkauf\Event\BuchGekauft;
+use App\Common\AggregateRoot;
 use Symfony\Component\EventDispatcher\Event;
 
 /**
  * @author Marcus Häußler <marcus.haeussler@lidl.com>
  */
-final class Buch
+final class Buch extends AggregateRoot
 {
     /**
      * @var string
@@ -36,10 +37,6 @@ final class Buch
      * @var \DateTimeImmutable
      */
     private $kaufDatum;
-    /**
-     * @var Event[]
-     */
-    private $domainEvents = [];
 
     private function __construct(string $id, string $isbn, string $titel, string $autor, int $preis)
     {
@@ -55,21 +52,13 @@ final class Buch
     {
         $buch = new self($id, $isbn, $titel, $autor, $preis);
 
-        $buch->domainEvents[] = new BuchGekauft($id, $isbn, $titel, $buch->kaufDatum);
+        $buch->raise(
+            new BuchGekauft(
+                ['id' => $id, 'isbn' => $isbn, 'titel' => $titel, 'kaufDatum' => $buch->kaufDatum, 'preis' => $preis]
+            )
+        );
 
         return $buch;
-    }
-
-    /**
-     * @return Event[]
-     */
-    public function popDomainEvents(): array
-    {
-        $pendingEvents = $this->domainEvents;
-
-        $this->domainEvents = [];
-
-        return $pendingEvents;
     }
 
     public function id(): string

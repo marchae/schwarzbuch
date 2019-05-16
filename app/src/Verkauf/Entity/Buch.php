@@ -4,10 +4,12 @@ declare(strict_types = 1);
 
 namespace App\Verkauf\Entity;
 
+use App\Common\AggregateRoot;
+
 /**
  * @author Marcus Häußler <marcus.haeussler@lidl.com>
  */
-class Buch
+class Buch extends AggregateRoot
 {
     private const STATUS_VORGEMERKT = 0;
     private const STATUS_FREIGEGEBEN = 1;
@@ -16,7 +18,7 @@ class Buch
     /**
      * @var string
      */
-    private $buchId;
+    private $id;
     /**
      * @var string
      */
@@ -34,9 +36,9 @@ class Buch
      */
     private $status = self::STATUS_VORGEMERKT;
 
-    private function __construct(string $buchId, string $titel, string $isbn, int $verkaufsPreis)
+    private function __construct(string $id, string $titel, string $isbn, int $verkaufsPreis)
     {
-        $this->buchId = $buchId;
+        $this->id = $id;
         $this->titel = $titel;
         $this->isbn = $isbn;
         $this->verkaufsPreis = $verkaufsPreis;
@@ -54,9 +56,9 @@ class Buch
         $this->status = self::STATUS_FREIGEGEBEN;
     }
 
-    public function buchId(): string
+    public function id(): string
     {
-        return $this->buchId;
+        return $this->id;
     }
 
     public function titel(): string

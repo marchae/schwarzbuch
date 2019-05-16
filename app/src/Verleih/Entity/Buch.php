@@ -4,10 +4,16 @@ declare(strict_types = 1);
 
 namespace App\Verleih\Entity;
 
+use App\Common\AggregateRoot;
+use App\Common\DomainEvent;
+use App\Common\EventSourcingAggregateRoot;
+use App\Verleih\Event\BuchAusgeliehen;
+use App\Verleih\Event\BuchZumVerkaufFreigegeben;
+
 /**
  * @author Marcus Häußler <marcus.haeussler@lidl.com>
  */
-final class Buch
+final class Buch extends EventSourcingAggregateRoot
 {
     /**
      * @var string
@@ -38,14 +44,14 @@ final class Buch
         $this->kaufDatum = $kaufDatum;
     }
 
-    public static function nehmeBuchInInventarAuf(string $id, string $titel, string $isbn, \DateTimeInterface $kaufDatum): self
+    public static function inInventarAufnehmen(string $id, string $titel, string $isbn, \DateTimeInterface $kaufDatum): self
     {
         return new self($id, $titel, $isbn, $kaufDatum);
     }
 
-    public function leiheBuchAus(string $studentId, \DateTimeImmutable $rueckgabeTermin): void
+    public function ausleihen(string $studentId, \DateTimeImmutable $rueckgabeTermin): void
     {
-        // ist der student gesperrt? diese prüfung gehört woanders hin!!!
+        // Ist der Student gesperrt? Nutze den Student-AR, um ihn entsprechend zu prüfen.
 
         if ($this->istVerliehen()) {
             throw new \DomainException('Buch ist bereits verliehen');
@@ -55,11 +61,19 @@ final class Buch
             throw new \DomainException('Buch steht dem Verleih nicht mehr zur Verfügung');
         }
 
-        $ausgabeDatum = new \DateTimeImmutable();
-        $this->verleihHistorie[] = VerleihVorgang::beginnen(uniqid(), $this->id, $studentId, $ausgabeDatum, $rueckgabeTermin);
+        $this->raise(
+            new BuchAusgeliehen(
+                [
+                    'buchId' => $this->id(),
+                    'studentId' => $studentId,
+                    'ausgabeDatum' => new \DateTimeImmutable(),
+                    'rueckgabeDatum' => $rueckgabeTermin,
+                ]
+            )
+        );
     }
 
-    public function gibBuchZurueck(): void
+    public function zurueckgeben(): void
     {
         if (!$this->istVerliehen()) {
             throw new \DomainException('Ups, Buch ist gar nicht verliehen');
@@ -71,27 +85,15 @@ final class Buch
             }
         }
 
+        // @todo wie könnten wir das anders lösen?
         if ($this->ausleihLimitErreicht()) {
             $this->gebeBuchZumVerkaufFrei();
         }
     }
 
-
-
     public function ausleihLimitErreicht(): bool
     {
         return count($this->verleihHistorie) >= 3;
-    }
-
-    private function istVerliehen(): bool
-    {
-        foreach ($this->verleihHistorie as $verleihVorgang) {
-            if ($verleihVorgang->offen()) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public function id(): string
@@ -114,8 +116,33 @@ final class Buch
         return $this->kaufDatum;
     }
 
+    protected function apply(DomainEvent $event): void
+    {
+        switch (true) {
+            case $event instanceof BuchAusgeliehen:
+                $this->verleihHistorie[] = VerleihVorgang::beginnen(
+                    uniqid(),
+                    $event->payload()['buchId'],
+                    $event->payload()['studentId'],
+                    $event->payload()['ausgabeDatum'],
+                    $event->payload()['rueckgabeTermin']
+                );
+        }
+    }
+
+    private function istVerliehen(): bool
+    {
+        foreach ($this->verleihHistorie as $verleihVorgang) {
+            if ($verleihVorgang->offen()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function gebeBuchZumVerkaufFrei(): void
     {
-
+        $this->raise(new BuchZumVerkaufFreigegeben(['id' => $this->id()]));
     }
 }

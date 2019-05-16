@@ -4,7 +4,6 @@ declare(strict_types = 1);
 
 namespace App\Verkauf\EventSubscriber;
 
-use App\Einkauf\Event\BuchGekauft;
 use App\Verkauf\Entity\Buch;
 use App\Verkauf\Repository\BuchRepository;
 use App\Verleih\Event\BuchZumVerkaufFreigegeben;
@@ -34,7 +33,8 @@ class BuchZumVerkaufFreigegebenSubscriber implements EventSubscriberInterface
 
     public function freigeben(BuchZumVerkaufFreigegeben $buchZumVerkaufFreigegeben): void
     {
-        $buch = $this->buchRepository->finde($buchZumVerkaufFreigegeben->buchId());
+        /** @var Buch $buch */
+        $buch = $this->buchRepository->finde($buchZumVerkaufFreigegeben->payload()['buchId']);
 
         $buch->zumVerkaufFreigeben();
 

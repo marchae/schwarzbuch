@@ -33,7 +33,7 @@ class BuchGekauftSubscriber implements EventSubscriberInterface
 
     public function inInventarAufnehmen(BuchGekauft $buchGekauft): void
     {
-        $buch = Buch::nehmeBuchInInventarAuf($buchGekauft->buchId(), $buchGekauft->titel(), $buchGekauft->isbn(), $buchGekauft->kaufDatum());
+        $buch = Buch::inInventarAufnehmen($buchGekauft->buchId(), $buchGekauft->titel(), $buchGekauft->isbn(), $buchGekauft->kaufDatum());
 
         $this->buchRepository->speichern($buch);
     }

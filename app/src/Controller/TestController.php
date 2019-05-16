@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace App\Einkauf\Controller;
+namespace App\Controller;
 
 use App\Einkauf\Entity\Buch;
 use App\Einkauf\Repository\BuchRepository as BuchEinkaufRepository;

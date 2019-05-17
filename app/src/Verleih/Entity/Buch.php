@@ -4,7 +4,6 @@ declare(strict_types = 1);
 
 namespace App\Verleih\Entity;
 
-use App\Common\AggregateRoot;
 use App\Common\DomainEvent;
 use App\Common\EventSourcingAggregateRoot;
 use App\Verleih\Event\BuchAusgeliehen;

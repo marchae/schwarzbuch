@@ -7,6 +7,7 @@ namespace App\Verleih\Entity;
 use App\Common\DomainEvent;
 use App\Common\EventSourcingAggregateRoot;
 use App\Verleih\Event\BuchAusgeliehen;
+use App\Verleih\Event\BuchInInventarAufgenommen;
 use App\Verleih\Event\BuchZumVerkaufFreigegeben;
 
 /**
@@ -35,17 +36,19 @@ final class Buch extends EventSourcingAggregateRoot
      */
     private $verleihHistorie = [];
 
-    public function __construct(string $id, string $titel, string $isbn, \DateTimeInterface $kaufDatum)
+    private function __construct()
     {
-        $this->id = $id;
-        $this->titel = $titel;
-        $this->isbn = $isbn;
-        $this->kaufDatum = $kaufDatum;
     }
 
     public static function inInventarAufnehmen(string $id, string $titel, string $isbn, \DateTimeInterface $kaufDatum): self
     {
-        return new self($id, $titel, $isbn, $kaufDatum);
+        $buch = new self();
+
+        $buch->raise(
+            new BuchInInventarAufgenommen(['id' => $id, 'titel' => $titel, 'isbn' => $isbn, 'kaufDatum' => $kaufDatum])
+        );
+
+        return $buch;
     }
 
     public function ausleihen(string $studentId, \DateTimeImmutable $rueckgabeTermin): void
@@ -126,6 +129,14 @@ final class Buch extends EventSourcingAggregateRoot
                     $event->payload()['ausgabeDatum'],
                     $event->payload()['rueckgabeTermin']
                 );
+                break;
+
+            case $event instanceof BuchInInventarAufgenommen:
+                $this->id = $event->payload()['id'];
+                $this->titel = $event->payload()['titel'];
+                $this->isbn = $event->payload()['isbn'];
+                $this->kaufDatum = $event->payload()['kaufDatum'];
+                break;
         }
     }
 

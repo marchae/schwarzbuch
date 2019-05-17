@@ -6,7 +6,6 @@ namespace App\Einkauf\Entity;
 
 use App\Einkauf\Event\BuchGekauft;
 use App\Common\AggregateRoot;
-use Symfony\Component\EventDispatcher\Event;
 
 /**
  * @author Marcus Häußler <marcus.haeussler@lidl.com>
@@ -54,7 +53,7 @@ final class Buch extends AggregateRoot
 
         $buch->raise(
             new BuchGekauft(
-                ['id' => $id, 'isbn' => $isbn, 'titel' => $titel, 'kaufDatum' => $buch->kaufDatum, 'preis' => $preis]
+                ['buchId' => $id, 'isbn' => $isbn, 'titel' => $titel, 'kaufDatum' => $buch->kaufDatum, 'preis' => $preis]
             )
         );
 

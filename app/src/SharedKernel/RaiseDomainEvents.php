@@ -2,17 +2,15 @@
 
 namespace App\SharedKernel;
 
-use Symfony\Component\EventDispatcher\Event;
-
-trait ProvideDomainEvents
+trait RaiseDomainEvents
 {
     /**
-     * @var array|Event[]
+     * @var array|DomainEvent[]
      */
     private $domainEvents = [];
 
     /**
-     * @return array|Event[]
+     * @return array|DomainEvent[]
      */
     public function popDomainEvents(): array
     {
@@ -23,7 +21,7 @@ trait ProvideDomainEvents
         return $domainEvents;
     }
 
-    protected function addDomainEvent(Event $event): void
+    protected function raise(DomainEvent $event): void
     {
         $this->domainEvents[] = $event;
     }

@@ -2,18 +2,19 @@
 
 namespace App\Verkauf\EventSubscriber;
 
-use App\Verkauf\Repository\BuchRepository;
+use App\SharedKernel\EventStreamRepository;
+use App\Verkauf\Entity\Buch;
 use App\Verleih\Event\BuchZumVerkaufFreigegeben;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 final class BuchZumVerkaufFreigegebenSubscriber implements EventSubscriberInterface
 {
 
-    private $buchRepository;
+    private $eventStreamRepository;
 
-    public function __construct(BuchRepository $buchRepository)
+    public function __construct(EventStreamRepository $eventStreamRepository)
     {
-        $this->buchRepository = $buchRepository;
+        $this->eventStreamRepository = $eventStreamRepository;
     }
 
     /**
@@ -43,8 +44,11 @@ final class BuchZumVerkaufFreigegebenSubscriber implements EventSubscriberInterf
 
     public function buchZumVerkaufFreigeben(BuchZumVerkaufFreigegeben $event): void
     {
-        $buch = $this->buchRepository->finde($event->getBuchId());
+        /** @var Buch $buch */
+        $buch = $this->eventStreamRepository->finde(Buch::class, $event->getBuchId());
 
         $buch->zumVerkaufFreigeben();
+
+        $this->eventStreamRepository->speichern($buch);
     }
 }

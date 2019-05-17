@@ -3,12 +3,12 @@
 namespace App\Einkauf\Entity;
 
 use App\Einkauf\Events\BuchGekauft;
-use App\SharedKernel\ProvideDomainEvents;
+use App\SharedKernel\RaiseDomainEvents;
 use DateTimeImmutable;
 
 final class Buch
 {
-    use ProvideDomainEvents;
+    use RaiseDomainEvents;
 
     private $id;
     private $isbn;

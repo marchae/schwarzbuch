@@ -2,18 +2,24 @@
 
 namespace App\Verleih\EventSubscriber;
 
-use App\Einkauf\Events\BuchGekauft;
+use App\SharedKernel\DispatchDomainEvents;
 use App\SharedKernel\EventStreamRepository;
 use App\Verleih\Entity\Buch;
+use App\Verleih\Event\BuchZumVerkaufFreigegeben;
+use App\Verleih\Event\BuchZurueckgegeben;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-final class BuchGekauftSubscriber implements EventSubscriberInterface
+final class BuchZurueckgegbenSubscriber implements EventSubscriberInterface
 {
+    use DispatchDomainEvents;
+
     private $eventStreamRepository;
 
-    public function __construct(EventStreamRepository $eventStreamRepository)
+    public function __construct(EventStreamRepository $eventStreamRepository, EventDispatcherInterface $eventDispatcher)
     {
         $this->eventStreamRepository = $eventStreamRepository;
+        $this->setEventDispatcher($eventDispatcher);
     }
 
     /**
@@ -37,20 +43,17 @@ final class BuchGekauftSubscriber implements EventSubscriberInterface
     public static function getSubscribedEvents(): array
     {
         return [
-            BuchGekauft::class => 'buchInInventarAufnehmen',
+            BuchZurueckgegeben::class => 'buchFuerVerkaufFreigeben',
         ];
     }
 
-    public function buchInInventarAufnehmen(BuchGekauft $event): void
+    public function buchFuerVerkaufFreigeben(BuchZurueckgegeben $event): void
     {
-        $buch = Buch::inInventarAufnehmen(
-            $event->getId(),
-            $event->getTitel(),
-            $event->getAutor(),
-            $event->getIsbn(),
-            $event->getKaufDatum()
-        );
+        /** @var Buch $buch */
+        $buch = $this->eventStreamRepository->finde(Buch::class, $event->getBuchId());
 
-        $this->eventStreamRepository->speichern($buch);
+        if ($buch->maximaleAusleihvorgaengeErreicht()) {
+            $this->dispatchEvents([new BuchZumVerkaufFreigegeben($buch)]);
+        }
     }
 }

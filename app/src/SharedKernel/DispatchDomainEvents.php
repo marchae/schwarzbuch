@@ -5,7 +5,7 @@ namespace App\SharedKernel;
 use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
-trait DispatchEvents
+trait DispatchDomainEvents
 {
     /**
      * @var EventDispatcherInterface

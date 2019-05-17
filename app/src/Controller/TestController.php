@@ -2,77 +2,94 @@
 
 namespace App\Controller;
 
-use App\Einkauf\Entity\Buch as BuchImEinkauf;
 use App\Einkauf\Repository\BuchRepository as EinkaufBuchRepository;
-use App\Verkauf\Repository\BuchRepository as VerkaufBuchRepository;
-use App\Verleih\Entity\Verleih;
-use App\Verleih\Repository\VerleihRepository;
+use App\Einkauf\Repository\BuchRepository;
+use App\SharedKernel\EventStreamRepository;
+use App\Einkauf\Entity\Buch as BuchImEinkauf;
+use App\Verkauf\Entity\Buch as BuchImVerkauf;
+use App\Verleih\Entity\Buch as BuchImVerleih;
+use App\Verleih\Entity\Name;
+use App\Verleih\Entity\Student;
 use DateTime;
 use DateTimeImmutable;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class TestController
+class TestController extends AbstractController
 {
     private $history = [];
 
-    /**
-     * @var Verleih
-     */
-    private $verleih;
-
-    private $buchImVerkauf;
-
     private $einkaufBuchRepository;
-    private $verleihRepository;
+    private $eventStreamRepository;
     private $verkaufBuchRepository;
 
-    public function __construct(
-        EinkaufBuchRepository $einkaufBuchRepository,
-        VerleihRepository $verleihRepository,
-        VerkaufBuchRepository $verkaufBuchRepository
-    ) {
+    public function __construct(EinkaufBuchRepository $einkaufBuchRepository, EventStreamRepository $eventStreamRepository)
+    {
         $this->einkaufBuchRepository = $einkaufBuchRepository;
-        $this->verleihRepository = $verleihRepository;
-        $this->verkaufBuchRepository = $verkaufBuchRepository;
+        $this->eventStreamRepository = $eventStreamRepository;
     }
 
-    public function test(): Response
+    public function test(Request $request, BuchRepository $buchRepository): Response
     {
-        $buchImEinkauf = BuchImEinkauf::kaufeBuch(
-            '123',
-            '978-0321125217',
-            'Domain Driven Design',
-            'Eric J. Evans',
-            5289
-        );
+        $student1 = Student::registrieren('1', new Name('Marcel', 'Hergerdt'));
+        $student2 = Student::registrieren('2', new Name('Max', 'Mustermann'));
+        $student3 = Student::registrieren('3', new Name('Erika', 'Musterfrau'));
 
-        $this->appendHistory('Einkauf', 'Buch sollte gekauft (inventarisiert) sein', $buchImEinkauf);
+        $buch = $buchRepository->finde('123');
+        if ($buch === null) {
+            $buchImEinkauf = BuchImEinkauf::kaufeBuch(
+                '123',
+                '978-0321125217',
+                'Domain Driven Design',
+                'Eric J. Evans',
+                5289
+            );
 
-        $this->einkaufBuchRepository->speichern($buchImEinkauf);
+            $this->appendHistory('Einkauf', 'Buch sollte gekauft (inventarisiert) sein', $buchImEinkauf);
 
-        $this->buchImVerkauf = $this->verkaufBuchRepository->finde('123');
-        $this->appendHistory('Verkauf', 'Buch sollte inventarisiert sein', $this->buchImVerkauf);
+            $this->einkaufBuchRepository->speichern($buchImEinkauf);
+        }
 
-        $this->verleih = $this->verleihRepository->finde();
-        $this->appendHistory('Verleih', 'Buch sollte inventarisiert sein', $this->verleih);
+        /** @var BuchImVerkauf $buchImVerkauf */
+        $buchImVerkauf = $this->eventStreamRepository->finde(BuchImVerkauf::class, '123');
+        $this->appendHistory('Verkauf', 'Buch sollte inventarisiert sein', $buchImVerkauf);
 
-        $this->leiheBuchAusUndGibEsZurueck('123', '1', $this->getDate());
-        $this->appendHistory('Verkauf', 'Buch sollte vorgemerkt sein', $this->buchImVerkauf);
-        $this->leiheBuchAusUndGibEsZurueck('123', '2', $this->getDate());
-        $this->appendHistory('Verkauf', 'Buch sollte vorgemerkt sein', $this->buchImVerkauf);
-        $this->leiheBuchAusUndGibEsZurueck('123', '3', $this->getDate());
-        $this->appendHistory('Verkauf', 'Buch sollte freigegeben sein', $this->buchImVerkauf);
+        /** @var BuchImVerleih $buchImVerleih */
+        $buchImVerleih = $this->eventStreamRepository->finde(BuchImVerleih::class, '123');
 
-        $this->buchImVerkauf->kaufen();
+        $this->appendHistory('Verleih', 'Buch sollte inventarisiert sein', $buchImVerleih);
 
-        $this->appendHistory('Verkauf', 'Buch sollte verkauft sein', $this->buchImVerkauf);
+        ///*
+        $this->leiheBuchAusUndGibEsZurueck($buchImVerleih, $student1, $this->getDate());
+        $this->appendHistory('Verkauf', 'Buch sollte vorgemerkt sein', $buchImVerkauf);
+        $this->leiheBuchAusUndGibEsZurueck($buchImVerleih, $student2, $this->getDate());
+        $this->appendHistory('Verkauf', 'Buch sollte vorgemerkt sein', $buchImVerkauf);
+        $this->leiheBuchAusUndGibEsZurueck($buchImVerleih, $student3, $this->getDate());
+        $this->eventStreamRepository->speichern($buchImVerleih);
+        $this->appendHistory('Verkauf', 'Buch sollte freigegeben sein', $buchImVerkauf);
+        //*/
 
-        return new JsonResponse($this->history);
+        $this->appendHistory('Verkauf', 'Buch sollte freigegeben sein', $buchImVerkauf);
+
+        //$buchImVerkauf->kaufen();
+
+        //$this->appendHistory('Verkauf', 'Buch sollte verkauft sein', $buchImVerkauf);
+
+        if ($request->query->has('html')) {
+            return $this->render('debug.html.twig', ['history' => $this->history]);
+        } else {
+            return new JsonResponse($this->history);
+        }
     }
 
     private function appendHistory(string $context, string $action, $obj): void
     {
+        if ($obj === null) {
+            return;
+        }
+
         $this->history[] = [
             'context' => $context,
             'action' => $action,
@@ -83,13 +100,13 @@ class TestController
         ];
     }
 
-    private function leiheBuchAusUndGibEsZurueck(string $buchId, string $studentId, DateTimeImmutable $rueckgabeTermin): void
+    private function leiheBuchAusUndGibEsZurueck(BuchImVerleih $buch, Student $student, DateTimeImmutable $rueckgabeTermin): void
     {
-        $this->verleih->buchAusleihen($buchId, $studentId, $rueckgabeTermin);
-        $this->appendHistory('Verleih', 'Buch sollte ausgeliehen sein', $this->verleih);
-        $this->verleih->buchZurueckgeben($buchId, $studentId);
-        $this->verleihRepository->speichern($this->verleih);
-        $this->appendHistory('Verleih', 'Buch sollte zurueckgegeben sein', $this->verleih);
+        $buch->ausleihen($student, $rueckgabeTermin);
+        $this->appendHistory('Verleih', 'Buch sollte ausgeliehen sein', $buch);
+        $buch->zurueckgeben();
+        //$this->eventStreamRepository->speichern($buch);
+        $this->appendHistory('Verleih', 'Buch sollte zurueckgegeben sein', $buch);
     }
 
     private function getDate(): DateTimeImmutable

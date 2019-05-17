@@ -3,17 +3,17 @@
 namespace App\Verkauf\EventSubscriber;
 
 use App\Einkauf\Events\BuchGekauft;
+use App\SharedKernel\EventStreamRepository;
 use App\Verkauf\Entity\Buch;
-use App\Verkauf\Repository\BuchRepository;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class BuchGekauftSubscriber implements EventSubscriberInterface
 {
-    private $buchRepository;
+    private $eventStreamRepository;
 
-    public function __construct(BuchRepository $buchRepository)
+    public function __construct(EventStreamRepository $eventStreamRepository)
     {
-        $this->buchRepository = $buchRepository;
+        $this->eventStreamRepository = $eventStreamRepository;
     }
 
     /**
@@ -45,11 +45,12 @@ class BuchGekauftSubscriber implements EventSubscriberInterface
     {
         $buch = Buch::nehmeBuchInInventarAuf(
             $event->getId(),
-            $event->getTitel(),
             $event->getIsbn(),
+            $event->getTitel(),
+            $event->getAutor(),
             $event->getPreis()
         );
 
-        $this->buchRepository->speichern($buch);
+        $this->eventStreamRepository->speichern($buch);
     }
 }

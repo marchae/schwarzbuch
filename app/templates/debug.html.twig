@@ -1,0 +1,103 @@
+{% extends "base.html.twig" %}
+
+{% block body %}
+    <body class="grid">
+    <div class="item header einkauf einkauf--0"><h1>Einkauf</h1></div>
+    <div class="item header verleih verleih--0"><h1>Verleih</h1></div>
+    <div class="item header verkauf verkauf--0"><h1>Verkauf</h1></div>
+    {% for historyItem in history %}
+        <div class="item {{ historyItem.context|lower }} {{ historyItem.context|lower }}--{{ loop.index }}">
+            <div>Info: {{ historyItem.action }}</div>
+            <div class="mb-1">
+                Aggregate Root: {{ historyItem.aggregateRoot.class }}
+                <button onclick="toggle('details_{{ loop.index }}');">Toggle details</button>
+            </div>
+            <div id="details_{{ loop.index }}" class="hidden">
+                {{ dump(historyItem.aggregateRoot.object) }}
+            </div>
+        </div>
+    {% endfor %}
+    </body>
+{% endblock %}
+
+{% block stylesheets %}
+    {% set rows = history|length %}
+
+    {% set gridTemplateAreaRows = [''] %}
+    {% for i in 0..rows %}
+        {% set gridTemplateAreaRows = gridTemplateAreaRows|merge(['"a'~i ~ ' b'~i ~ ' c'~i~'"']) %}
+    {% endfor %}
+
+    <style>
+        .mb-1 {
+            margin-bottom: .25rem;
+        }
+
+        pre {
+            margin: 0;
+            border: 1px solid #868686;
+            background: #fff;
+            padding: .25rem;
+        }
+
+        .header {
+            text-align: center;
+        }
+
+        .item {
+            border: 1px solid #868686;
+            padding: .5rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .grid {
+            display: grid;
+            grid-gap: 1rem;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-areas: {{ gridTemplateAreaRows|join('\n')|raw }};
+        }
+
+        .einkauf {
+            background: #baed91;;
+        }
+
+        .verleih {
+            background: #b2cefe;
+        }
+
+        .verkauf {
+            background: #fea3aa;
+        }
+
+
+        {% for i in 0..rows %}
+        .einkauf--{{ i }} {
+            grid-area: a{{ i }};
+        }
+
+        .verleih--{{ i }} {
+            grid-area: b{{ i }};
+        }
+
+        .verkauf--{{ i }} {
+            grid-area: c{{ i }};
+        }
+        {% endfor %}
+    </style>
+
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        function toggle(id)
+        {
+            let element = document.getElementById(id);
+
+            element.classList.toggle('hidden');
+        }
+    </script>
+{% endblock %}
+

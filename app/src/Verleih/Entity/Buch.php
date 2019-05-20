@@ -3,14 +3,17 @@
 namespace App\Verleih\Entity;
 
 use App\SharedKernel\EventSourced;
+use App\SharedKernel\IEventSourced;
 use App\Verleih\Event\BuchAusgeliehen;
 use App\Verleih\Event\BuchInventarisiert;
 use App\Verleih\Event\BuchZurueckgegeben;
 use DateTimeImmutable;
 use DomainException;
 
-final class Buch extends EventSourced
+final class Buch implements IEventSourced
 {
+    use EventSourced;
+
     private const MAXIMALE_VERLEIH_VORGAENGE_BUCH = 3;
 
     private $id;
@@ -38,11 +41,6 @@ final class Buch extends EventSourced
         return $buch;
     }
 
-    public static function instanciate(): EventSourced
-    {
-        return new self();
-    }
-
     public function ausleihen(Student $student, DateTimeImmutable $rueckgabeTermin): void
     {
         if ($this->istAusgeliehen()) {
@@ -53,7 +51,15 @@ final class Buch extends EventSourced
             throw new DomainException('Student ist für den Verleih gesperrt');
         }
 
-        $this->raise(new BuchAusgeliehen($this->getId(), $student->getId(), new DateTimeImmutable(), $rueckgabeTermin));
+        $this->raise(
+            new BuchAusgeliehen(
+                uniqid('', true),
+                $this->getId(),
+                $student->getId(),
+                new DateTimeImmutable(),
+                $rueckgabeTermin
+            )
+        );
     }
 
     public function istAusgeliehen(): bool
@@ -78,7 +84,14 @@ final class Buch extends EventSourced
             throw new DomainException('Buch ist nicht ausgeliehen');
         }
 
-        $this->raise(new BuchZurueckgegeben($this->getId()));
+        $offenerVerleihVorgang = null;
+        foreach ($this->verleihVorgaenge as $verleihVorgang) {
+            if ($verleihVorgang->istOffen() && $verleihVorgang->getBuchId() === $this->getId()) {
+                $offenerVerleihVorgang = $verleihVorgang;
+            }
+        }
+
+        $this->raise(new BuchZurueckgegeben($offenerVerleihVorgang->getId(), $this->getId(), new DateTimeImmutable()));
     }
 
     public function getTitel(): string
@@ -123,7 +136,7 @@ final class Buch extends EventSourced
         return count($this->verleihVorgaenge) >= self::MAXIMALE_VERLEIH_VORGAENGE_BUCH;
     }
 
-    protected function applyBuchInventarisiert(BuchInventarisiert $event): void
+    private function applyBuchInventarisiert(BuchInventarisiert $event): void
     {
         $this->id = $event->getBuchId();
         $this->isbn = $event->getIsbn();
@@ -132,10 +145,10 @@ final class Buch extends EventSourced
         $this->kaufDatum = $event->getKaufDatum();
     }
 
-    protected function applyBuchAusgeliehen(BuchAusgeliehen $event): void
+    private function applyBuchAusgeliehen(BuchAusgeliehen $event): void
     {
         $verleihVorgang = VerleihVorgang::beginnen(
-            uniqid('', true),
+            $event->getVerleihVorgangId(),
             $event->getBuchId(),
             $event->getStudentId(),
             $event->getAusleihDatum(),
@@ -145,7 +158,7 @@ final class Buch extends EventSourced
         $this->verleihVorgaenge[] = $verleihVorgang;
     }
 
-    protected function applyBuchZurueckgegeben(BuchZurueckgegeben $event): void
+    private function applyBuchZurueckgegeben(BuchZurueckgegeben $event): void
     {
         foreach ($this->verleihVorgaenge as $verleihVorgang) {
             if ($verleihVorgang->istOffen() && $event->getBuchId() === $verleihVorgang->getBuchId()) {

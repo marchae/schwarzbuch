@@ -2,28 +2,27 @@
 
 namespace App\SharedKernel;
 
-use Symfony\Component\EventDispatcher\Event;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 trait DispatchDomainEvents
 {
     /**
-     * @var EventDispatcherInterface
+     * @var MessageBusInterface
      */
-    private $eventDispatcher;
+    private $domainEventBus;
 
-    protected function setEventDispatcher(EventDispatcherInterface $eventDispatcher): void
+    protected function setDomainEventBus(MessageBusInterface $domainEventBus): void
     {
-        $this->eventDispatcher = $eventDispatcher;
+        $this->domainEventBus = $domainEventBus;
     }
 
     /**
-     * @param array|Event[] $events
+     * @param array|DomainEvent[] $events
      */
     protected function dispatchEvents(array $events): void
     {
         foreach ($events as $event) {
-            $this->eventDispatcher->dispatch(get_class($event), $event);
+            $this->domainEventBus->dispatch($event);
         }
     }
 }

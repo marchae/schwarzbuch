@@ -1,27 +1,60 @@
 {% extends "base.html.twig" %}
 
 {% block body %}
-    <body class="grid">
-    <div class="item header einkauf einkauf--0"><h1>Einkauf</h1></div>
-    <div class="item header verleih verleih--0"><h1>Verleih</h1></div>
-    <div class="item header verkauf verkauf--0"><h1>Verkauf</h1></div>
-    {% for historyItem in history %}
-        <div class="item {{ historyItem.context|lower }} {{ historyItem.context|lower }}--{{ loop.index }}">
-            <div>Info: {{ historyItem.action }}</div>
-            <div class="mb-1">
-                Aggregate Root: {{ historyItem.aggregateRoot.class }}
-                <button onclick="toggle('details_{{ loop.index }}');">Toggle details</button>
-            </div>
-            <div id="details_{{ loop.index }}" class="hidden">
-                {{ dump(historyItem.aggregateRoot.object) }}
-            </div>
-        </div>
+    <body>
+    <h1>Bücher</h1>
+    {% for buch in buecher %}
+        <p>
+            {{ buch.titel }}
+            <small>von {{ buch.autor }}</small>
+            <br>
+            <small>(ISBN: {{ buch.isbn }}) Int. Id: {{ buch.id }}</small>
+            <br>
+            Kaufpreis: {{ (buch.kaufPreis/100)|number_format(2, ',', '.') }} &euro;
+            {% if buch.zumVerkaufFreigegeben %}; Verkaufspreis: {{ (buch.verkaufsPreis/100)|number_format(2, ',', '.') }} &euro;{% endif %}
+        </p>
+        Verleihvorgänge:<br>
+        <ul>
+            {% for verleihVorgang in buch.verleihVorgaenge %}
+                <li>
+                    {% if verleihVorgang.istAbgeschlossen() %}
+                        Vom {{ verleihVorgang.ausleihDatum|date('d.m.Y') }} für {{ verleihVorgang.tage }} Tag(e)
+                    {% else %}
+                        {% if verleihVorgang.tage == 0 %}
+                            Seit heute
+                        {% else %}
+                            Seit {{ verleihVorgang.tage }} Tag(e)
+                        {% endif %}
+                        ({{ verleihVorgang.ausleihDatum|date('d.m.Y') }})
+                    {% endif %}
+                    von {{ verleihVorgang.student.name }} ausgeliehen
+                </li>
+            {% endfor %}
+        </ul>
     {% endfor %}
+    <div class="grid">
+        <div class="item header einkauf einkauf--0"><h1>Einkauf</h1></div>
+        <div class="item header verleih verleih--0"><h1>Verleih</h1></div>
+        <div class="item header verkauf verkauf--0"><h1>Verkauf</h1></div>
+        {% for event in eventLog %}
+            {% set class = event.getFullyQualifiedClassName() %}
+            {% set context = 'Einkauf' in class ? 'einkauf' : (('Verleih' in class) ? 'verleih' : 'verkauf') %}
+            <div class="item {{ context }} {{ context }}--{{ loop.index }}">
+                <h3>{{ event.getShortClassName() }}</h3>
+                <div class="mb-1">
+                    <button onclick="toggle('details_{{ loop.index }}');">Event Payload anzeigen/ausblenden</button>
+                </div>
+                <div id="details_{{ loop.index }}" class="hidden">
+                    {{ dump(event.getPayload()) }}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
     </body>
 {% endblock %}
 
 {% block stylesheets %}
-    {% set rows = history|length %}
+    {% set rows = eventLog|length %}
 
     {% set gridTemplateAreaRows = [''] %}
     {% for i in 0..rows %}
@@ -85,15 +118,14 @@
         .verkauf--{{ i }} {
             grid-area: c{{ i }};
         }
+
         {% endfor %}
     </style>
-
 {% endblock %}
 
 {% block javascripts %}
     <script>
-        function toggle(id)
-        {
+        function toggle(id) {
             let element = document.getElementById(id);
 
             element.classList.toggle('hidden');

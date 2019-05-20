@@ -3,7 +3,7 @@
 namespace App\SharedKernel;
 
 use Doctrine\DBAL\Connection;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Throwable;
 
 class EventStreamRepository
@@ -12,13 +12,13 @@ class EventStreamRepository
 
     private $connection;
 
-    public function __construct(Connection $connection, EventDispatcherInterface $eventDispatcher)
+    public function __construct(Connection $connection, MessageBusInterface $domainEventBus)
     {
         $this->connection = $connection;
-        $this->setEventDispatcher($eventDispatcher);
+        $this->setDomainEventBus($domainEventBus);
     }
 
-    public function finde(string $className, string $id): ?EventSourced
+    public function finde(string $className, string $id): ?IEventSourced
     {
         $statement = $this->connection->prepare(
             'SELECT * FROM event_stream WHERE aggregate_root = ? AND aggregate_id = ?'
@@ -32,10 +32,14 @@ class EventStreamRepository
             $events[] = $eventEntries['event']::fromPayload(json_decode($eventEntries['payload'], true));
         }
 
+        if (count($events) === 0) {
+            return null;
+        }
+
         return $className::replay($events);
     }
 
-    public function speichern(EventSourced $eventSourced): void
+    public function speichern(IEventSourced $eventSourced): void
     {
         $pendingEvents = $eventSourced->popDomainEvents();
 
@@ -62,5 +66,21 @@ class EventStreamRepository
         }
 
         $this->dispatchEvents($pendingEvents);
+    }
+
+    /**
+     * @return array|DomainEvent[]
+     */
+    public function getAll(): array
+    {
+        $statement = $this->connection->prepare('SELECT * FROM event_stream ORDER BY occurence ASC;');
+        $statement->execute();
+
+        $events = [];
+        foreach ($statement->fetchAll() as $eventEntries) {
+            $events[] = $eventEntries['event']::fromPayload(json_decode($eventEntries['payload'], true));
+        }
+
+        return $events;
     }
 }

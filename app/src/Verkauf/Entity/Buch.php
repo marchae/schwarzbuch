@@ -3,12 +3,15 @@
 namespace App\Verkauf\Entity;
 
 use App\SharedKernel\EventSourced;
+use App\SharedKernel\IEventSourced;
 use App\Verkauf\Event\BuchInInventarAufgenommen;
 use App\Verkauf\Event\BuchZumVerkaufFreigegeben;
 use DomainException;
 
-final class Buch extends EventSourced
+final class Buch implements IEventSourced
 {
+    use EventSourced;
+
     private const STATUS_VORGEMERKT = 'vorgemerkt';
     private const STATUS_FREIGEGEBEN = 'freigegeben';
     private const STATUS_VERKAUFT = 'verkauft';
@@ -32,11 +35,6 @@ final class Buch extends EventSourced
         $buch->raise(new BuchInInventarAufgenommen($buchId, $isbn, $titel, $autor, $verkaufsPreis));
 
         return $buch;
-    }
-
-    public static function instanciate(): EventSourced
-    {
-        return new self();
     }
 
     public function getTitel(): string
@@ -85,7 +83,7 @@ final class Buch extends EventSourced
         ];
     }
 
-    protected function applyBuchInInventarAufgenommen(BuchInInventarAufgenommen $event): void
+    private function applyBuchInInventarAufgenommen(BuchInInventarAufgenommen $event): void
     {
         $this->id = $event->getBuchId();
         $this->isbn = $event->getIsbn();
@@ -95,7 +93,7 @@ final class Buch extends EventSourced
         $this->status = self::STATUS_VORGEMERKT;
     }
 
-    protected function applyBuchZumVerkaufFreigegeben(BuchZumVerkaufFreigegeben $event): void
+    private function applyBuchZumVerkaufFreigegeben(BuchZumVerkaufFreigegeben $event): void
     {
         $this->status = self::STATUS_FREIGEGEBEN;
     }

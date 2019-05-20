@@ -4,7 +4,7 @@ namespace App\SharedKernel;
 
 use RuntimeException;
 
-abstract class EventSourced
+trait EventSourced
 {
     /**
      * @var array|DomainEvent[]
@@ -14,11 +14,11 @@ abstract class EventSourced
     /**
      * @param array|DomainEvent[] $events
      *
-     * @return EventSourced
+     * @return IEventSourced
      */
-    public static function replay(array $events): self
+    final public static function replay(array $events): IEventSourced
     {
-        $me = static::instanciate();
+        $me = new static();
 
         foreach ($events as $event) {
             $me->apply($event);
@@ -27,11 +27,9 @@ abstract class EventSourced
         return $me;
     }
 
-    abstract public static function instanciate(): self;
-
     private function apply(DomainEvent $event): void
     {
-        $method = 'apply' . $event->getClassName();
+        $method = 'apply' . $event->getShortClassName();
 
         if (!method_exists($this, $method)) {
             throw new RuntimeException(sprintf('Missing method "%s"', $method));
@@ -43,7 +41,7 @@ abstract class EventSourced
     /**
      * @return array|DomainEvent[]
      */
-    public function popDomainEvents(): array
+    final public function popDomainEvents(): array
     {
         $domainEvents = $this->domainEvents;
 
@@ -52,9 +50,7 @@ abstract class EventSourced
         return $domainEvents;
     }
 
-    abstract public function getId(): string;
-
-    protected function raise(DomainEvent $event): void
+    private function raise(DomainEvent $event): void
     {
         $this->domainEvents[] = $event;
 

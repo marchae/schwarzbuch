@@ -2,13 +2,14 @@
 
 namespace App\Einkauf\Entity;
 
-use App\Einkauf\Events\BuchGekauft;
-use App\SharedKernel\RaiseDomainEvents;
+use App\Einkauf\Event\BuchGekauft;
+use App\SharedKernel\EventSourced;
+use App\SharedKernel\IEventSourced;
 use DateTimeImmutable;
 
-final class Buch
+final class Buch implements IEventSourced
 {
-    use RaiseDomainEvents;
+    use EventSourced;
 
     private $id;
     private $isbn;
@@ -17,21 +18,16 @@ final class Buch
     private $preis;
     private $kaufDatum;
 
-    private function __construct(string $id, string $isbn, string $titel, string $autor, int $preis)
+    private function __construct()
     {
-        $this->id = $id;
-        $this->isbn = $isbn;
-        $this->titel = $titel;
-        $this->autor = $autor;
-        $this->preis = $preis;
-        $this->kaufDatum = new DateTimeImmutable();
     }
 
     public static function kaufeBuch(string $id, string $isbn, string $titel, string $autor, int $preis): Buch
     {
-        $buch = new self($id, $isbn, $titel, $autor, $preis);
+        $kaufDatum = new DateTimeImmutable();
 
-        $buch->domainEvents[] = new BuchGekauft($buch);
+        $buch = new self();
+        $buch->raise(new BuchGekauft($id, $isbn, $titel, $autor, $preis, $kaufDatum));
 
         return $buch;
     }
@@ -76,5 +72,15 @@ final class Buch
             'kaufDatum' => $this->kaufDatum->format('d.m.Y'),
             'preis' => sprintf('%s €', number_format($this->preis / 100, 2, ',', '.')),
         ];
+    }
+
+    private function applyBuchGekauft(BuchGekauft $event): void
+    {
+        $this->id = $event->getBuchId();
+        $this->isbn = $event->getIsbn();
+        $this->titel = $event->getTitel();
+        $this->autor = $event->getAutor();
+        $this->preis = $event->getPreis();
+        $this->kaufDatum = $event->getKaufDatum();
     }
 }

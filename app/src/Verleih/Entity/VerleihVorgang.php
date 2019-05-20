@@ -34,7 +34,7 @@ final class VerleihVorgang
      */
     private $abgeschlossen = false;
 
-    private function __construct(string $id, string $buchId, string $studentId, \DateTimeImmutable $ausgabeDatum, \DateTimeImmutable $rueckgabeTermin)
+    private function __construct(string $id, string $buchId, string $studentId, string $ausgabeDatum, string $rueckgabeTermin)
     {
         $this->id = $id;
         $this->buchId = $buchId;
@@ -43,7 +43,7 @@ final class VerleihVorgang
         $this->rueckgabeTermin = $rueckgabeTermin;
     }
 
-    public static function beginnen(string $id, string $buchId, string $studentId, \DateTimeImmutable $ausgabeDatum, \DateTimeImmutable $rueckgabeTermin): self
+    public static function beginnen(string $id, string $buchId, string $studentId, string $ausgabeDatum, string $rueckgabeTermin): self
     {
         return new self($id, $buchId, $studentId, $ausgabeDatum, $rueckgabeTermin);
     }

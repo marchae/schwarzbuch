@@ -9,6 +9,7 @@ use App\Common\EventSourcingAggregateRoot;
 use App\Verleih\Event\BuchAusgeliehen;
 use App\Verleih\Event\BuchInInventarAufgenommen;
 use App\Verleih\Event\BuchZumVerkaufFreigegeben;
+use App\Verleih\Event\BuchZurueckgegeben;
 
 /**
  * @author Marcus Häußler <marcus.haeussler@lidl.com>
@@ -36,11 +37,7 @@ final class Buch extends EventSourcingAggregateRoot
      */
     private $verleihHistorie = [];
 
-    private function __construct()
-    {
-    }
-
-    public static function inInventarAufnehmen(string $id, string $titel, string $isbn, \DateTimeInterface $kaufDatum): self
+    public static function inInventarAufnehmen(string $id, string $titel, string $isbn, string $kaufDatum): self
     {
         $buch = new self();
 
@@ -51,7 +48,7 @@ final class Buch extends EventSourcingAggregateRoot
         return $buch;
     }
 
-    public function ausleihen(string $studentId, \DateTimeImmutable $rueckgabeTermin): void
+    public function ausleihen(string $studentId, string $rueckgabeTermin): void
     {
         // Ist der Student gesperrt? Nutze den Student-AR, um ihn entsprechend zu prüfen.
 
@@ -63,12 +60,14 @@ final class Buch extends EventSourcingAggregateRoot
             throw new \DomainException('Buch steht dem Verleih nicht mehr zur Verfügung');
         }
 
+        $datum = (new \DateTimeImmutable())->format('Y-m-d');
+
         $this->raise(
             new BuchAusgeliehen(
                 [
                     'buchId' => $this->id(),
                     'studentId' => $studentId,
-                    'ausgabeDatum' => new \DateTimeImmutable(),
+                    'ausgabeDatum' => $datum,
                     'rueckgabeDatum' => $rueckgabeTermin,
                 ]
             )
@@ -81,11 +80,7 @@ final class Buch extends EventSourcingAggregateRoot
             throw new \DomainException('Ups, Buch ist gar nicht verliehen');
         }
 
-        foreach ($this->verleihHistorie as $verleihVorgang) {
-            if ($verleihVorgang->offen()) {
-                $verleihVorgang->abschliessen();
-            }
-        }
+        $this->raise(new BuchZurueckgegeben([]));
 
         // @todo wie könnten wir das anders lösen?
         if ($this->ausleihLimitErreicht()) {
@@ -127,7 +122,7 @@ final class Buch extends EventSourcingAggregateRoot
                     $event->payload()['buchId'],
                     $event->payload()['studentId'],
                     $event->payload()['ausgabeDatum'],
-                    $event->payload()['rueckgabeTermin']
+                    $event->payload()['rueckgabeDatum']
                 );
                 break;
 
@@ -137,10 +132,18 @@ final class Buch extends EventSourcingAggregateRoot
                 $this->isbn = $event->payload()['isbn'];
                 $this->kaufDatum = $event->payload()['kaufDatum'];
                 break;
+
+            case $event instanceof BuchZurueckgegeben:
+                foreach ($this->verleihHistorie as $verleihVorgang) {
+                    if ($verleihVorgang->offen()) {
+                        $verleihVorgang->abschliessen();
+                    }
+                }
+                break;
         }
     }
 
-    private function istVerliehen(): bool
+    public function istVerliehen(): bool
     {
         foreach ($this->verleihHistorie as $verleihVorgang) {
             if ($verleihVorgang->offen()) {

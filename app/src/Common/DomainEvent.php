@@ -25,6 +25,6 @@ class DomainEvent extends Event
 
     public static function fromPayload(array $payload): self
     {
-        return new self($payload);
+        return new static($payload);
     }
 }

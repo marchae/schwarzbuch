@@ -46,7 +46,8 @@ abstract class EventStreamRepository
             $events[] = $eventEntries['event']::fromPayload(json_decode($eventEntries['payload'], true));
         }
 
-        $aggregateRoot = $aggregateRootClassName::replay($events);
+        $aggregateRoot = new $aggregateRootClassName();
+        $aggregateRoot->replay($events);
 
         return $aggregateRoot;
     }

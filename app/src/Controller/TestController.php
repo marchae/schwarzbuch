@@ -16,17 +16,17 @@ class TestController
 {
     public function test(BuchEinkaufRepository $buchEinkaufRepository, BuchVerleihRepository $buchVerleihRepository): Response
     {
-        // $buch = Buch::kaufeBuch('123', 'jdfjhe3', 'mit lidl zum erfolg', 'der killerwal', 455);
-
-        // $buchEinkaufRepository->speichern($buch);
+        /**/
+        $buch = Buch::kaufeBuch('marcel1', 'kjogrej438ujfg43', 'mit marcel zum erfolg', 'der schlaue', 5657484);
+        $buchEinkaufRepository->speichern($buch);
 
         /** @var \App\Verleih\Entity\Buch $buchImVerleih */
-        $buchImVerleih = $buchVerleihRepository->finde('123');
+        $buchImVerleih = $buchVerleihRepository->finde('marcel1');
 
-        // $buchImVerleih->ausleihen('234234', new \DateTimeImmutable('tomorrow'));
+        //$buchImVerleih->ausleihen('234234', (new \DateTimeImmutable('tomorrow'))->format('Y-m-d'));
+        //$buchImVerleih->zurueckgeben();
+        $buchVerleihRepository->speichern($buchImVerleih);
 
-        // $buchVerleihRepository->speichern($buchImVerleih);
-
-        return new Response('funzt');
+        return new Response($buchImVerleih->istVerliehen() ? 'ist verliehen' : 'ist ausleihbar');
     }
 }

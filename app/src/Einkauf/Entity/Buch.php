@@ -44,7 +44,7 @@ final class Buch extends AggregateRoot
         $this->titel = $titel;
         $this->autor = $autor;
         $this->preis = $preis;
-        $this->kaufDatum = new \DateTimeImmutable();
+        $this->kaufDatum = (new \DateTimeImmutable())->format('Y-m-d');
     }
 
     public static function kaufeBuch(string $id, string $isbn, string $titel, string $autor, int $preis): self

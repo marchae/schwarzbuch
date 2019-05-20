@@ -65,6 +65,7 @@ final class Buch extends EventSourcingAggregateRoot
         $this->raise(
             new BuchAusgeliehen(
                 [
+                    'verleihVorgangId' => uniqid(),
                     'buchId' => $this->id(),
                     'studentId' => $studentId,
                     'ausgabeDatum' => $datum,
@@ -80,6 +81,7 @@ final class Buch extends EventSourcingAggregateRoot
             throw new \DomainException('Ups, Buch ist gar nicht verliehen');
         }
 
+        // @todo to discuss: VerleihVorgangAbgeschlossen Event?
         $this->raise(new BuchZurueckgegeben([]));
 
         // @todo wie könnten wir das anders lösen?
@@ -118,7 +120,7 @@ final class Buch extends EventSourcingAggregateRoot
         switch (true) {
             case $event instanceof BuchAusgeliehen:
                 $this->verleihHistorie[] = VerleihVorgang::beginnen(
-                    uniqid(),
+                    $event->payload()['verleihVorgangId'],
                     $event->payload()['buchId'],
                     $event->payload()['studentId'],
                     $event->payload()['ausgabeDatum'],

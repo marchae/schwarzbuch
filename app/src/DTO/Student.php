@@ -64,4 +64,13 @@ final class Student
     {
         return $this->vorname . ' ' . $this->nachname;
     }
+
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'vorname' => $this->vorname,
+            'nachname' => $this->nachname,
+        ];
+    }
 }

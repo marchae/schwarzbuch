@@ -2,134 +2,148 @@
 
 {% block body %}
     <body>
-    <h1>Bücher</h1>
-    {% for buch in buecher %}
-        <p>
-            {{ buch.titel }}
-            <small>von {{ buch.autor }}</small>
-            <br>
-            <small>(ISBN: {{ buch.isbn }}) Int. Id: {{ buch.id }}</small>
-            <br>
-            Kaufpreis: {{ (buch.kaufPreis/100)|number_format(2, ',', '.') }} &euro;
-            {% if buch.zumVerkaufFreigegeben %}; Verkaufspreis: {{ (buch.verkaufsPreis/100)|number_format(2, ',', '.') }} &euro;{% endif %}
-        </p>
-        Verleihvorgänge:<br>
-        <ul>
-            {% for verleihVorgang in buch.verleihVorgaenge %}
-                <li>
-                    {% if verleihVorgang.istAbgeschlossen() %}
-                        Vom {{ verleihVorgang.ausleihDatum|date('d.m.Y') }} für {{ verleihVorgang.tage }} Tag(e)
-                    {% else %}
-                        {% if verleihVorgang.tage == 0 %}
-                            Seit heute
-                        {% else %}
-                            Seit {{ verleihVorgang.tage }} Tag(e)
-                        {% endif %}
-                        ({{ verleihVorgang.ausleihDatum|date('d.m.Y') }})
-                    {% endif %}
-                    von {{ verleihVorgang.student.name }} ausgeliehen
-                </li>
-            {% endfor %}
-        </ul>
-    {% endfor %}
-    <div class="grid">
-        <div class="item header einkauf einkauf--0"><h1>Einkauf</h1></div>
-        <div class="item header verleih verleih--0"><h1>Verleih</h1></div>
-        <div class="item header verkauf verkauf--0"><h1>Verkauf</h1></div>
-        {% for event in eventLog %}
-            {% set class = event.getFullyQualifiedClassName() %}
-            {% set context = 'Einkauf' in class ? 'einkauf' : (('Verleih' in class) ? 'verleih' : 'verkauf') %}
-            <div class="item {{ context }} {{ context }}--{{ loop.index }}">
-                <h3>{{ event.getShortClassName() }}</h3>
-                <div class="mb-1">
-                    <button onclick="toggle('details_{{ loop.index }}');">Event Payload anzeigen/ausblenden</button>
-                </div>
-                <div id="details_{{ loop.index }}" class="hidden">
-                    {{ dump(event.getPayload()) }}
-                </div>
+    {% verbatim %}
+    <div class="grid" id="app">
+        <div class="list">
+            <div class="buch" v-for="buch in buecher" v-on:click="ausgewaehltesBuch = buch" v-bind:class="{ selected: ausgewaehltesBuch == buch }">
+                {{ buch.titel }}<br>
+                <small>von {{ buch.autor }}</small><br>
+                <small>(ISBN: {{ buch.isbn }})</small>
             </div>
-        {% endfor %}
+        </div>
+        <div class="details" v-if="ausgewaehltesBuch">
+                <p>
+                    <strong>Id</strong><br>
+                    {{ ausgewaehltesBuch.id }}
+                </p>
+                <p>
+                    <strong>Isbn</strong><br>
+                    {{ ausgewaehltesBuch.isbn }}
+                </p>
+                <p>
+                    <strong>Titel</strong><br>
+                    {{ ausgewaehltesBuch.titel }}
+                </p>
+                <p>
+                    <strong>Autor</strong><br>
+                    {{ ausgewaehltesBuch.autor }}
+                </p>
+                <p>
+                    <strong>Kaufdatum</strong><br>
+                    {{ ausgewaehltesBuch.kaufDatum }}
+                </p>
+                <p>
+                    <strong>Kaufpreis</strong><br>
+                    {{ ausgewaehltesBuch.kaufPreis }}
+                </p>
+                <p>
+                    <strong>Verkaufspreis</strong><br>
+                    {{ ausgewaehltesBuch.verkaufsPreis }}
+                    <span v-if="!ausgewaehltesBuch.zumVerkaufFreigegeben">(nicht freigeben)</span>
+                </p>
+                <td colspan="2">
+                    <strong>Verleihvorgänge</strong>
+                    <ul v-if="ausgewaehltesBuch.verleihVorgaenge.length">
+                        <li v-for="verleihVorgang in ausgewaehltesBuch.verleihVorgaenge">
+                            {{ verleihVorgangAlsText(verleihVorgang) }}
+                        </li>
+                    </ul>
+                    <p v-else>Keine</p>
+                </td>
+            </tbody>
+        </div>
+        <p class="details" v-else>Kein Buch ausgewählt</p>
     </div>
+    {% endverbatim %}
     </body>
 {% endblock %}
 
 {% block stylesheets %}
-    {% set rows = eventLog|length %}
-
-    {% set gridTemplateAreaRows = [''] %}
-    {% for i in 0..rows %}
-        {% set gridTemplateAreaRows = gridTemplateAreaRows|merge(['"a'~i ~ ' b'~i ~ ' c'~i~'"']) %}
-    {% endfor %}
-
     <style>
-        .mb-1 {
-            margin-bottom: .25rem;
+        * {
+            box-sizing: border-box;
         }
 
-        pre {
+        body {
             margin: 0;
-            border: 1px solid #868686;
-            background: #fff;
-            padding: .25rem;
+            padding: 0;
         }
 
-        .header {
-            text-align: center;
+        .buch {
+            border: 1px solid #C9C9C9;
+            padding: 1rem;
+            margin-bottom: 1rem;
         }
 
-        .item {
-            border: 1px solid #868686;
-            padding: .5rem;
+        .buch:last-child {
+            margin-bottom: 0;
         }
 
-        .hidden {
-            display: none;
+        .buch:hover {
+            background: lightgray;
+            cursor: pointer;
+        }
+
+        .buch.selected {
+            background: #b2cefe;
+            cursor: inherit;
         }
 
         .grid {
+            height: 100vh;
+            padding: 1rem;
             display: grid;
             grid-gap: 1rem;
-            grid-template-columns: 1fr 1fr 1fr;
-            grid-template-areas: {{ gridTemplateAreaRows|join('\n')|raw }};
+            grid-template-columns: 1fr 3fr;
+            grid-template-areas: "list details";
         }
 
-        .einkauf {
-            background: #baed91;;
+        .list {
+            grid-area: list;
+            overflow: auto;
         }
 
-        .verleih {
-            background: #b2cefe;
+        .details {
+            grid-area: details;
+            border: 1px solid #C9C9C9;
+            padding: 1rem;
+            margin: 0;
         }
 
-        .verkauf {
-            background: #fea3aa;
+        .details > *:first-child {
+            margin-top: 0;
         }
-
-
-        {% for i in 0..rows %}
-        .einkauf--{{ i }} {
-            grid-area: a{{ i }};
-        }
-
-        .verleih--{{ i }} {
-            grid-area: b{{ i }};
-        }
-
-        .verkauf--{{ i }} {
-            grid-area: c{{ i }};
-        }
-
-        {% endfor %}
     </style>
 {% endblock %}
 
 {% block javascripts %}
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <script>
-        function toggle(id) {
-            let element = document.getElementById(id);
+        let app = new Vue({
+            el: '#app',
+            data: {
+                buecher: {{ buecherAsJson|raw }},
+                ausgewaehltesBuch: null,
+            },
+            methods: {
+                verleihVorgangAlsText: function(verleihVorgang) {
+                    let text = '';
+                    if (verleihVorgang.rueckgabeDatum) {
+                        text += 'Vom ' + verleihVorgang.ausleihDatum + ' für ' + verleihVorgang.tage + ' Tag(e)';
+                    } else {
+                        if (verleihVorgang.tage === 0) {
+                            text += 'Seit heute';
+                        } else {
+                            text += 'Seit ' + verleihVorgang.tage + ' Tag(e)';
+                        }
+                        text += ' (' + verleihVorgang.ausleihDatum + ')';
+                    }
+                    text += ' von ' + verleihVorgang.student.vorname + ' ' + verleihVorgang.student.nachname + ' ausgeliehen';
 
-            element.classList.toggle('hidden');
-        }
+                    return text;
+                },
+            },
+        });
     </script>
 {% endblock %}
 

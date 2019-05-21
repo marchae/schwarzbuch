@@ -94,6 +94,24 @@ final class VerleihVorgang
         return $this;
     }
 
+    public function istAbgeschlossen(): bool
+    {
+        return $this->rueckgabeDatum !== null;
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'student' => $this->student->toArray(),
+            'ausleihDatum' => $this->ausleihDatum->format('d.m.Y'),
+            'rueckgabeTermin' => $this->rueckgabeTermin->format('d.m.Y'),
+            'rueckgabeDatum' => $this->rueckgabeDatum ? $this->rueckgabeDatum->format('d.m.Y') : '',
+            'tage' => $this->getTage(),
+            'tageUeberzogen' => $this->getTageUeberzogen(),
+        ];
+    }
+
     public function getTage(): int
     {
         return Carbon::instance($this->rueckgabeDatum ?? Carbon::today())->diffInDays($this->ausleihDatum);
@@ -108,10 +126,5 @@ final class VerleihVorgang
         }
 
         return Carbon::instance($this->rueckgabeDatum ?? $today)->diffInDays();
-    }
-
-    public function istAbgeschlossen(): bool
-    {
-        return $this->rueckgabeDatum !== null;
     }
 }

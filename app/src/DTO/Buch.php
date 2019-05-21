@@ -184,4 +184,29 @@ final class Buch
 
         return null;
     }
+
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'isbn' => $this->isbn,
+            'titel' => $this->titel,
+            'autor' => $this->autor,
+            'kaufPreis' => $this->formatierePreis($this->kaufPreis),
+            'kaufDatum' => $this->kaufDatum->format('d.m.Y'),
+            'verkaufsPreis' => $this->formatierePreis($this->verkaufsPreis),
+            'zumVerkaufFreigegeben' => $this->zumVerkaufFreigegeben,
+            'verleihVorgaenge' => array_map(
+                static function (VerleihVorgang $verleihVorgang) {
+                    return $verleihVorgang->toArray();
+                },
+                $this->verleihVorgaenge
+            ),
+        ];
+    }
+
+    private function formatierePreis(int $preis): string
+    {
+        return number_format($preis / 100, 2, ',', '.') . ' €';
+    }
 }

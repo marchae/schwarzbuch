@@ -7,6 +7,7 @@ use App\DTO\Student as StudentDTO;
 use App\DTO\VerleihVorgang;
 use App\Einkauf\Entity\Buch as BuchImEinkauf;
 use App\Einkauf\Event\BuchGekauft;
+use App\SharedKernel\DomainEvent;
 use App\SharedKernel\EventStreamRepository;
 use App\Verkauf\Entity\Buch as BuchImVerkauf;
 use App\Verkauf\Event\BuchInInventarAufgenommen;
@@ -16,8 +17,6 @@ use App\Verleih\Entity\Student;
 use App\Verleih\Event\BuchAusgeliehen;
 use App\Verleih\Event\BuchZumVerkaufFreigegeben;
 use App\Verleih\Event\BuchZurueckgegeben;
-use Carbon\Carbon;
-use DateTimeImmutable;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -54,62 +53,91 @@ class TestController extends AbstractController
             $student3->getId() => $this->studentToDto($student3),
         ];
 
-        $buch1ImEinkauf = $this->eventStreamRepository->finde(BuchImEinkauf::class, '123');
-        if ($buch1ImEinkauf === null) {
-            $buch1ImEinkauf = BuchImEinkauf::kaufeBuch(
-                '123',
-                '978-0321125217',
-                'Domain Driven Design',
-                'Eric J. Evans',
-                5289
-            );
-
-            $this->eventStreamRepository->speichern($buch1ImEinkauf);
-        }
-
-        $buch2ImEinkauf = $this->eventStreamRepository->finde(BuchImEinkauf::class, '987');
-        if ($buch2ImEinkauf === null) {
-            $buch2ImEinkauf = BuchImEinkauf::kaufeBuch(
-                '987',
-                '978-3955715724',
-                'Gewaltfreie Kommunikation: Eine Sprache des Lebens',
-                'Marshall B. Rosenberg',
-                2400
-            );
-
-            $this->eventStreamRepository->speichern($buch2ImEinkauf);
-        }
+        $this->kaufeBuch('123', '978-0321125217', 'Domain Driven Design', 'Eric J. Evans', 5289);
+        $this->kaufeBuch(
+            '987',
+            '978-3955715724',
+            'Gewaltfreie Kommunikation: Eine Sprache des Lebens',
+            'Marshall B. Rosenberg',
+            2400
+        );
+        $this->kaufeBuch('456', '978-3864250071', 'Castle 1: Heat Wave - Hitzewelle', 'Richard Castle', 1180);
 
         /** @var BuchImVerleih $buch1ImVerleih */
         $buch1ImVerleih = $this->eventStreamRepository->finde(BuchImVerleih::class, '123');
         /** @var BuchImVerleih $buch2ImVerleih */
         $buch2ImVerleih = $this->eventStreamRepository->finde(BuchImVerleih::class, '987');
+        /** @var BuchImVerleih $buch3ImVerleih */
+        $buch3ImVerleih = $this->eventStreamRepository->finde(BuchImVerleih::class, '456');
+
+        //$buch1ImVerleih->ausleihen($student2, DateTimeImmutable::createFromMutable(Carbon::tomorrow()));
+        //$buch1ImVerleih->zurueckgeben();
+
+        //$buch2ImVerleih->ausleihen($student1, DateTimeImmutable::createFromMutable(Carbon::tomorrow()));
+        //$buch2ImVerleih->zurueckgeben();
+
+        //$buch3ImVerleih->ausleihen($student3, DateTimeImmutable::createFromMutable(Carbon::tomorrow()));
+        //$buch3ImVerleih->zurueckgeben();
+
+        //$this->eventStreamRepository->speichern($buch1ImVerleih);
+        //$this->eventStreamRepository->speichern($buch2ImVerleih);
+        //$this->eventStreamRepository->speichern($buch3ImVerleih);
 
         /** @var BuchImVerkauf $buchImVerkauf */
         $buch1ImVerkauf = $this->eventStreamRepository->finde(BuchImVerkauf::class, '123');
         /** @var BuchImVerkauf $buchImVerkauf */
         $buch2ImVerkauf = $this->eventStreamRepository->finde(BuchImVerkauf::class, '987');
+        /** @var BuchImVerkauf $buchImVerkauf */
+        $buch3ImVerkauf = $this->eventStreamRepository->finde(BuchImVerkauf::class, '456');
 
-        //$buch1ImVerleih->ausleihen($student1, DateTimeImmutable::createFromMutable(Carbon::tomorrow()));
-        //$buch1ImVerleih->zurueckgeben();
-
-        $this->eventStreamRepository->speichern($buch1ImVerleih);
-        $this->eventStreamRepository->speichern($buch2ImVerleih);
-
-        //$buchImVerkauf->kaufen();
+        //$buch1ImVerkauf->kaufen();
+        //$buch2ImVerkauf->kaufen();
+        //$buch3ImVerkauf->kaufen();
 
         $this->loadEvents();
 
+        $buecherAsJson = json_encode(
+            array_values(
+                array_map(
+                    static function (BuchDTO $buch) {
+                        return $buch->toArray();
+                    },
+                    $this->buecher
+                )
+            )
+        );
+
         if ($request->query->has('html')) {
-            return $this->render('debug.html.twig', ['eventLog' => $this->eventLog, 'buecher' => $this->buecher]);
+            return $this->render('debug.html.twig', ['buecherAsJson' => $buecherAsJson]);
         } else {
-            return new JsonResponse($this->eventLog);
+            return new JsonResponse(
+                array_map(
+                    static function (DomainEvent $event) {
+                        return [
+                            'event' => $event->getFullyQualifiedClassName(),
+                            'payload' => $event->getPayload(),
+                        ];
+                    },
+                    $this->eventLog
+                )
+            );
         }
     }
 
     private function studentToDto(Student $student): StudentDTO
     {
         return new StudentDTO($student->getId(), $student->getName()->getVorname(), $student->getName()->getNachname());
+    }
+
+    private function kaufeBuch(string $buchId, string $isbn, string $titel, string $autor, int $preis): void
+    {
+        $buch = $this->eventStreamRepository->finde(BuchImEinkauf::class, $buchId);
+
+        if ($buch === null) {
+            $buch = BuchImEinkauf::kaufeBuch($buchId, $isbn, $titel, $autor, $preis);
+
+            $this->eventStreamRepository->speichern($buch);
+        }
     }
 
     private function loadEvents(): void

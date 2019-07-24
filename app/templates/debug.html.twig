@@ -1,0 +1,149 @@
+{% extends "base.html.twig" %}
+
+{% block body %}
+    <body>
+    {% verbatim %}
+    <div class="grid" id="app">
+        <div class="list">
+            <div class="buch" v-for="buch in buecher" v-on:click="ausgewaehltesBuch = buch" v-bind:class="{ selected: ausgewaehltesBuch == buch }">
+                {{ buch.titel }}<br>
+                <small>von {{ buch.autor }}</small><br>
+                <small>(ISBN: {{ buch.isbn }})</small>
+            </div>
+        </div>
+        <div class="details" v-if="ausgewaehltesBuch">
+                <p>
+                    <strong>Id</strong><br>
+                    {{ ausgewaehltesBuch.id }}
+                </p>
+                <p>
+                    <strong>Isbn</strong><br>
+                    {{ ausgewaehltesBuch.isbn }}
+                </p>
+                <p>
+                    <strong>Titel</strong><br>
+                    {{ ausgewaehltesBuch.titel }}
+                </p>
+                <p>
+                    <strong>Autor</strong><br>
+                    {{ ausgewaehltesBuch.autor }}
+                </p>
+                <p>
+                    <strong>Kaufdatum</strong><br>
+                    {{ ausgewaehltesBuch.kaufDatum }}
+                </p>
+                <p>
+                    <strong>Kaufpreis</strong><br>
+                    {{ ausgewaehltesBuch.kaufPreis }}
+                </p>
+                <p>
+                    <strong>Verkaufspreis</strong><br>
+                    {{ ausgewaehltesBuch.verkaufsPreis }}
+                    <span v-if="!ausgewaehltesBuch.zumVerkaufFreigegeben">(nicht freigeben)</span>
+                </p>
+                <td colspan="2">
+                    <strong>Verleihvorgänge</strong>
+                    <ul v-if="ausgewaehltesBuch.verleihVorgaenge.length">
+                        <li v-for="verleihVorgang in ausgewaehltesBuch.verleihVorgaenge">
+                            {{ verleihVorgangAlsText(verleihVorgang) }}
+                        </li>
+                    </ul>
+                    <p v-else>Keine</p>
+                </td>
+            </tbody>
+        </div>
+        <p class="details" v-else>Kein Buch ausgewählt</p>
+    </div>
+    {% endverbatim %}
+    </body>
+{% endblock %}
+
+{% block stylesheets %}
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        .buch {
+            border: 1px solid #C9C9C9;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .buch:last-child {
+            margin-bottom: 0;
+        }
+
+        .buch:hover {
+            background: lightgray;
+            cursor: pointer;
+        }
+
+        .buch.selected {
+            background: #b2cefe;
+            cursor: inherit;
+        }
+
+        .grid {
+            height: 100vh;
+            padding: 1rem;
+            display: grid;
+            grid-gap: 1rem;
+            grid-template-columns: 1fr 3fr;
+            grid-template-areas: "list details";
+        }
+
+        .list {
+            grid-area: list;
+            overflow: auto;
+        }
+
+        .details {
+            grid-area: details;
+            border: 1px solid #C9C9C9;
+            padding: 1rem;
+            margin: 0;
+        }
+
+        .details > *:first-child {
+            margin-top: 0;
+        }
+    </style>
+{% endblock %}
+
+{% block javascripts %}
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script>
+        let app = new Vue({
+            el: '#app',
+            data: {
+                buecher: {{ buecherAsJson|raw }},
+                ausgewaehltesBuch: null,
+            },
+            methods: {
+                verleihVorgangAlsText: function(verleihVorgang) {
+                    let text = '';
+                    if (verleihVorgang.rueckgabeDatum) {
+                        text += 'Vom ' + verleihVorgang.ausleihDatum + ' für ' + verleihVorgang.tage + ' Tag(e)';
+                    } else {
+                        if (verleihVorgang.tage === 0) {
+                            text += 'Seit heute';
+                        } else {
+                            text += 'Seit ' + verleihVorgang.tage + ' Tag(e)';
+                        }
+                        text += ' (' + verleihVorgang.ausleihDatum + ')';
+                    }
+                    text += ' von ' + verleihVorgang.student.vorname + ' ' + verleihVorgang.student.nachname + ' ausgeliehen';
+
+                    return text;
+                },
+            },
+        });
+    </script>
+{% endblock %}
+
